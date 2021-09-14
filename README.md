@@ -57,3 +57,7 @@ Install Python dependencies
 Run VILauncher
 
 `python vilauncher.py`
+
+Run VILauncher with debug (SIGSEGV Errors)
+
+`python vilauncher.py --debug`
