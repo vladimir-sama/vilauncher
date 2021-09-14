@@ -1,4 +1,5 @@
 # VILauncher
+![404](ui/icon.svg)
 Vlad Impaler Launcher (VILauncher) is a Python Qt5 Minecraft launcher!
 
 ## About VILauncher
