@@ -1,0 +1,5 @@
+minecraft_launcher_lib==4.0
+requests==2.26.0
+psutil==5.8.0
+PyGithub==1.55
+PySide2==5.15.2
