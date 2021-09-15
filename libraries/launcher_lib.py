@@ -186,25 +186,34 @@ def install_version(version:str, mc_dir:str, callback:dict, version_type:int, la
 
     modified_string = ''
     if not version_formated in installed:
-        mc_lib.install.install_minecraft_version(version_formated, mc_dir, callback)
+        try:
+            mc_lib.install.install_minecraft_version(version_formated, mc_dir, callback)
+        except:
+            pass
     if version_type == CODE_FABRIC:
-        if mc_lib.fabric.is_minecraft_version_supported(version_formated):
-            latest_loader = mc_lib.fabric.get_latest_loader_version()
-            launch_version = 'fabric-loader-' + latest_loader + '-' + version_formated
-            modified_string = ' + Fabric (' + latest_loader + ')'
-            if not launch_version in installed:
-                mc_lib.fabric.install_fabric(version_formated, mc_dir, latest_loader, callback)
-        else:
-            return ['Fabric', 'This Fabric version (' + version_formated + ') is not supported']
+        try:
+            if mc_lib.fabric.is_minecraft_version_supported(version_formated):
+                latest_loader = mc_lib.fabric.get_latest_loader_version()
+                launch_version = 'fabric-loader-' + latest_loader + '-' + version_formated
+                modified_string = ' + Fabric (' + latest_loader + ')'
+                if not launch_version in installed:
+                    mc_lib.fabric.install_fabric(version_formated, mc_dir, latest_loader, callback)
+            else:
+                return ['Fabric', 'This Fabric version (' + version_formated + ') is not supported']
+        except:
+            pass
     elif version_type == CODE_FORGE:
-        forge_version = mc_lib.forge.find_forge_version(version_formated)
-        launch_version = version_formated + '-forge-' + forge_version.split('-')[1]
-        modified_string = ' + Forge (' + forge_version + ')'
-        if mc_lib.forge.supports_automatic_install(forge_version):
-            if not launch_version in installed:
-                mc_lib.forge.install_forge_version(forge_version, mc_dir, callback)
-        else:
-            return ['Forge', 'This Forge version (' + forge_version + ') does not support automatic install']
+        try:
+            forge_version = mc_lib.forge.find_forge_version(version_formated)
+            launch_version = version_formated + '-forge-' + forge_version.split('-')[1]
+            modified_string = ' + Forge (' + forge_version + ')'
+            if mc_lib.forge.supports_automatic_install(forge_version):
+                if not launch_version in installed:
+                    mc_lib.forge.install_forge_version(forge_version, mc_dir, callback)
+            else:
+                return ['Forge', 'This Forge version (' + forge_version + ') does not support automatic install']
+        except:
+            pass
     if not launch_version in installed:
         return [[launch_version, tl_skin_path], 'Install', 'Minecraft version (' + version + ')' + modified_string + ' installed']
     return [[launch_version, tl_skin_path]]
@@ -327,10 +336,11 @@ def install_tl_skin(version:str, mc_dir:str, version_type:int, launcher_dir:str)
         if 'supports' in lib.keys():
             found : bool = False
             for version_ in lib['supports']:
+                should_continue : bool = False
                 for term in search:
                     if not term in version_.lower():
-                        continue
-                if exclude in version_.lower():
+                        should_continue = True
+                if exclude in version_.lower() or should_continue:
                     continue
                 found = True
             if not found:
@@ -354,10 +364,11 @@ def install_tl_skin(version:str, mc_dir:str, version_type:int, launcher_dir:str)
         return ''
     search.append('tlskincape')
     for mod in check_mods:
+        should_continue : bool = False
         for term in search:
             if not term in mod['name']:
-                continue
-        if exclude in mod['name']:
+                should_continue = True
+        if exclude in mod['name'] or should_continue:
             continue
         if not found_version in mod['supports']:
             return ''
