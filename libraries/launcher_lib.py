@@ -42,20 +42,11 @@ def get_versions_online(show_snapshots:bool, show_old:bool):
 def get_versions_installed(mc_dir:str):
     return mc_lib.utils.get_installed_versions(mc_dir)
 
-def get_versions_impaler():
-    online_versions : list = [version.get('id') for version in get_versions_online(False, False)]
-    try:
-        return online_versions[:online_versions.index('1.16.5') + 1]
-    except:
-        pass
-    return online_versions
-
 def get_filters():
     return [
         'Installed',
         'Vanilla',
         'Fabric',
-        'Impaler'
     ]
 
 def get_account_types():
@@ -398,35 +389,13 @@ def apply_modpack(mc_dir:str, modpack_dir:str, modpack:str, remove:bool):
             shutil.move(os.path.join(modpack_dir, modpack), mc_dir)
             os.rename(os.path.join(mc_dir, modpack), os.path.join(mc_dir, 'mods'))
 
-def get_impaler_mod_list():
-    return {
-        'modrinth': [
-            'AZomiSrC', # Hydrogen
-            'YL57xq9U', # Iris
-            'gvQqBUqZ', # Lithium
-            'P7dR8mSH', # Fabric API
-            'mOgUt4GM', # Modmenu
-            'Orvt0mRa', # Indium
-            'yBW8D80W', # Dynamic Lights
-            'H8CaAYZC>hEOCdOgW',
-            # Starlight > Phosphor
-            'fQEb0iXm', # Krypton
-            '2Uev7LdA', # Better Grass
-            'PtjYWJkn', # Sodium Extra
-            'aXf2OSFU', # Zoomer
-            'LQ3K71Q1', # Dynamic FPS
-            'GNxdLCoP'  # Cull Leaves
-        ],
-        'github': []
-    }
-
 def download_modpack(modlist:dict, download_dir:str, version_formated:str, callback:dict, github_token:str):
     if not os.path.isdir(download_dir):
         os.makedirs(download_dir)
-    if len(os.listdir(download_dir)) >= len():
-        return True
     modrinth_list : list = modlist['modrinth']
     github_list : list = modlist['github']
+    if len(os.listdir(download_dir)) >= len(modrinth_list + github_list):
+        return True
     callback.get('setMax', mc_lib.helper.empty)(len(modrinth_list + github_list))
     previous_index : int = 0
     for index, mod_id in enumerate(modrinth_list):
@@ -446,14 +415,15 @@ def download_modpack(modlist:dict, download_dir:str, version_formated:str, callb
 
 # GITHUB
 
-def find_github(repo:str, token:str, strings:list):
+def find_github(repo_string:str, token:str, strings:list):
     git = Github(token)
-    repo = git.get_repo(repo) # PaperMC/Starlight
-    for release in repo.get_releases():
-        for asset in release.get_assets():
-            asset_name = asset.name
-            if all(string in asset_name for string in strings):
-                return (asset.url, asset_name, asset.raw_headers)
+    for n_repo in repo_string.split('>'):
+        repo = git.get_repo(n_repo)
+        for release in repo.get_releases():
+            for asset in release.get_assets():
+                asset_name = asset.name
+                if all(string in asset_name for string in strings):
+                    return (asset.url, asset_name, asset.raw_headers)
     return ()
 
 def download_github(url:str, destination:str, headers:dict):
