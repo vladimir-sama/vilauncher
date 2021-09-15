@@ -23,12 +23,13 @@ sleep_time : float = 0.05
 class Console_Thread(QThread): # CONSOLE THREAD
     append = Signal(str)
     move_scrollbar = Signal()
-    def __init__(self, other, process:subprocess.Popen, tl_skin_path:str):
+    def __init__(self, other, process:subprocess.Popen, tl_skin_path:str, modpack_name:str):
         super(Console_Thread, self).__init__()
         self.thread_lock : QMutex           = QMutex()
         self.arg_other   : Main_Window      = other
         self.arg_process : subprocess.Popen = process
         self.arg_tl_skin : str              = tl_skin_path
+        self.arg_modpack : str              = modpack_name
 
     def run(self): # USE START TO RUN
         output : str = ''
@@ -45,8 +46,8 @@ class Console_Thread(QThread): # CONSOLE THREAD
         if self.arg_tl_skin:
             if os.path.isfile(self.arg_tl_skin):
                 os.remove(self.arg_tl_skin)
-        if self.arg_other.filter_box.currentIndex() == launcher_lib.FILTER_IMPALER:
-            launcher_lib.apply_modpack(launcher_lib.mc_lib.utils.get_minecraft_directory(), os.path.join(self.arg_other.modpack_dir, 'impaler'), self.arg_other.version.currentText(), True)
+        if self.arg_modpack:
+            launcher_lib.apply_modpack(launcher_lib.mc_lib.utils.get_minecraft_directory(), os.path.join(self.arg_other.modpack_dir, self.arg_modpack), self.arg_other.version.currentText(), True)
         os.chdir(self.arg_other.launcher_dir)
         self.arg_other.set_read_only(False)
         self.arg_other.progress_bar.setValue(0)
@@ -90,14 +91,15 @@ class Main_Window(QMainWindow, Ui_main): # MAIN WINDOW
 
         self.launcher_dir : str = os.path.dirname(os.path.realpath(__file__))
         os.chdir(self.launcher_dir)
-        if not os.path.isdir('json'):
-            os.mkdir('json')
+        if not os.path.isdir('json/modpacks'):
+            os.makedirs('json/modpacks')
         if not os.path.isdir('modpacks'):
             os.mkdir('modpacks')
 
         self.save_json = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'json', 'save.json')
         self.cache_json = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'json', 'cache.json')
         self.modpack_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'modpacks')
+        self.modpack_json_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'json', 'modpacks')
 
         # LOAD CACHE
         load_data = {
@@ -147,6 +149,8 @@ class Main_Window(QMainWindow, Ui_main): # MAIN WINDOW
             self.account_type.addItem(ac_type)
         for filter_type in launcher_lib.get_filters():
             self.filter_box.addItem(filter_type)
+        for modpack in os.listdir(self.modpack_json_dir):
+            self.filter_box.addItem(modpack.rstrip('.json'))
 
         self.load_conf()
         self.filter_box.setCurrentIndex(launcher_lib.FILTER_INSTALLED)
@@ -272,15 +276,19 @@ class Main_Window(QMainWindow, Ui_main): # MAIN WINDOW
             for mc_version in launcher_lib.get_versions_online(self.option_snap, self.option_old):
                 self.version.addItem(mc_version.get('id'))
         elif index == launcher_lib.FILTER_FABRIC:
-            file = open(self.cache_json)
-            data = json.load(file)
-            file.close()
+            data : dict = {}
+            with open(self.cache_json) as file:
+                data = json.load(file)
             for mc_version in data['fabric']:
                 if mc_version[1]:
                     self.version.addItem(mc_version[0])
-        elif index == launcher_lib.FILTER_IMPALER:
-            for mc_version in launcher_lib.get_versions_impaler():
-                self.version.addItem(mc_version)
+        else:
+            for modpack in os.listdir(self.modpack_json_dir):
+                if self.filter_box.currentText() == modpack.rstrip('.json'):
+                    with open(os.path.join(self.modpack_json_dir, modpack)) as file:
+                        versions : list = json.load(file)['versions']
+                        for mc_version in versions:
+                            self.version.addItem(mc_version)
 
     def change_account(self, _:int): # ON EVENT CHANGE ACCOUNT TYPE
         if self.account_type.currentText() == launcher_lib.get_account_types()[0]:
@@ -312,17 +320,23 @@ class Main_Window(QMainWindow, Ui_main): # MAIN WINDOW
             return
         code : int = launcher_lib.CODE_VANILLA # VERSION TYPE
         index : int = self.filter_box.currentIndex()
+        modpack_name : str = ''
         if index == launcher_lib.FILTER_FABRIC:
             code = launcher_lib.CODE_FABRIC
-        elif index == launcher_lib.FILTER_IMPALER:
-            code = launcher_lib.CODE_FABRIC # IMPALER MOD PACK
-            if not launcher_lib.download_modpack(launcher_lib.get_impaler_mod_list(), os.path.join(self.modpack_dir, 'impaler', version_formated), version_formated, self.callback, self.github_token):
-                self.create_message('Impaler', 'Could not fetch files for (' + version_formated + ') Impaler')
-                self.set_read_only(False)
-                self.progress_bar.setValue(0)
-                os.chdir(self.launcher_dir)
-                return
-            launcher_lib.apply_modpack(launcher_lib.mc_lib.utils.get_minecraft_directory(), os.path.join(self.modpack_dir, 'impaler'), version_formated, False)
+        else:
+            for modpack in os.listdir(self.modpack_json_dir):
+                if self.filter_box.currentText() == modpack.rstrip('.json'):
+                    with open(os.path.join(self.modpack_json_dir, modpack)) as file:
+                        data : dict = json.load(file)
+                        modpack_name = data['name']
+                        code = data['modified']
+                        if not launcher_lib.download_modpack(data, os.path.join(self.modpack_dir, modpack_name, version_formated), version_formated, self.callback, self.github_token):
+                            self.create_message(modpack_name, 'Could not fetch files for (' + version_formated + ') ' + modpack_name)
+                            self.set_read_only(False)
+                            self.progress_bar.setValue(0)
+                            os.chdir(self.launcher_dir)
+                            return
+                        launcher_lib.apply_modpack(launcher_lib.mc_lib.utils.get_minecraft_directory(), os.path.join(self.modpack_dir, modpack_name), version_formated, False)
         # MORE RELEVANT VARIABLES
         username : str = self.username.text()
         uuid : str = self.uuid.text()
@@ -379,7 +393,7 @@ class Main_Window(QMainWindow, Ui_main): # MAIN WINDOW
         java_args = self.jvm_args.split() + launcher_lib.set_ram(self.current_ram_min, self.current_ram_max, 'M') + self.jvm_args.split()
         process = launcher_lib.launch(selected_version, username, uuid, token, ac_type, java_args, self.callback)
         self.progress_bar.setValue(0)
-        self.console_thread = Console_Thread(self, process, tl_skin_path)
+        self.console_thread = Console_Thread(self, process, tl_skin_path, modpack_name)
         self.console_thread.append.connect(self.append_console)
         self.console_thread.move_scrollbar.connect(self.scroll_signal)
         self.console_thread.start()
@@ -455,4 +469,3 @@ if __name__ == '__main__': # RUN
     main_window_ = Main_Window(debug, icon)
     main_window_.show()
     sys.exit(app.exec_())
-
