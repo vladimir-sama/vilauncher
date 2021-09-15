@@ -55,25 +55,51 @@ Go to [releases](https://github.com/Ogre44/vilauncher/releases) and download lat
 Place the binary in an empty directory and run.
 
 ### Linux (Source) (Unstable)
-Clone the repository
+Clone the repository.
 
 `git clone https://github.com/Ogre44/vilauncher.git`
 
-Enter the new directory
+Enter the new directory.
 
 `cd vilauncher`
 
-Install Python dependencies
+Install Python dependencies.
 
 `pip install -r requirements.txt`
 
-Run VILauncher
+Run VILauncher.
 
 `python vilauncher.py`
 
-Run VILauncher with debug (SIGSEGV Errors)
+Run VILauncher with debug (SIGSEGV Error Traceback)
 
 `python vilauncher.py --debug`
+
+### Build (Source) (Unstable)
+Build an executable.
+
+#### Linux Instructions
+Clone the repository.
+
+`git clone https://github.com/Ogre44/vilauncher.git`
+
+Enter the new directory.
+
+`cd vilauncher`
+
+Install Python dependencies.
+
+`pip install -r requirements.txt`
+
+Install PyInstaller.
+
+`pip install pyinstaller`
+
+Run PyInstaller with correct options and create executable.
+
+`pyinstaller -Fw vilauncher.py`
+
+Now find your new executable and run.
 
 ## Decisions
 Here are the reasons some things are missing.
