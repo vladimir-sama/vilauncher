@@ -14,18 +14,18 @@ launcher_version = '0.04'
 CODE_VANILLA = 0
 CODE_FORGE   = 1
 CODE_FABRIC  = 2
-FILTER_VANILLA   = 0
-FILTER_FABRIC    = 1
+FILTER_VANILLA = 0
+FILTER_FABRIC  = 1
 
 # GET FUNCTIONS
 
-def get_java_exec():
+def get_java_exec(): # FIND JAVA EXECUTABLE
     return shutil.which('java')
 
-def get_versions_legacy():
+def get_versions_legacy(): # OLD FUNCTION GET INSTALLED VERSIONS
     return os.listdir(os.path.join(mc_lib.utils.get_minecraft_directory(), 'versions'))
 
-def get_versions_online(show_snapshots:bool, show_old:bool):
+def get_versions_online(show_snapshots:bool, show_old:bool): # LIST MINECRAFT VERSIONS WITH FILTER
     ls : list = []
     try:
         ls = mc_lib.utils.get_version_list()
@@ -37,45 +37,45 @@ def get_versions_online(show_snapshots:bool, show_old:bool):
         ls = filter_old(ls)
     return ls
 
-def get_versions_installed(mc_dir:str):
+def get_versions_installed(mc_dir:str): # SHORTCUT
     return mc_lib.utils.get_installed_versions(mc_dir)
 
-def get_filters():
+def get_filters(): # GET VILAUNCHER FILTERS
     return [
         'Vanilla',
         'Fabric'
     ]
 
-def get_account_types():
+def get_account_types(): # GET AVAILABLE ACCOUNT TYPES
     return ['mojang', 'tlauncher']
 
 # FILTERS
 
-def is_valid_version(version:str, mc_dir:str):
+def is_valid_version(version:str, mc_dir:str): # SHORTCUT
     return mc_lib.utils.is_version_valid(version, mc_dir)
 
-def filter_snapshots(version_list:list):
+def filter_snapshots(version_list:list): # FILTER VERSIONS
     ls = []
     for version in version_list:
         if not 'rc' in version.get('id') and '.' in version.get('id') and not 'pre' in version.get('id').lower():
             ls.append(version)
     return ls
     
-def filter_old(version_list:list):
+def filter_old(version_list:list): # FILTER VERSIONS
     ls = []
     for version in version_list:
         if not version.get('id').startswith('a') and not version.get('id').startswith('b') and not version.get('id').startswith('c'):
             ls.append(version)
     return ls
 
-def ls_fabric_version(version_list:list):
+def ls_fabric_version(version_list:list): # LIST FABRIC VERSIONS FROM LIST
     fabric_list = []
     for version in version_list:
         if mc_lib.fabric.is_minecraft_version_supported(version):
             fabric_list.append(version)
     return fabric_list
 
-def ls_forge_version(version_list:list):
+def ls_forge_version(version_list:list): # LIST FORGE VERSIONS FROM LIST
     forge_list = []
     for version in version_list:
         if mc_lib.forge.find_forge_version(version):
@@ -84,7 +84,7 @@ def ls_forge_version(version_list:list):
 
 # MINECRAFT LAUNCH
 
-def get_natives_string(lib:dict):
+def get_natives_string(lib:dict): # IDK
     arch = '64'
 
     natives_file=''
@@ -123,7 +123,7 @@ def rule_says_yes(rule:dict):
 
     return not use_lib
 
-def should_use_library(lib:dict):
+def should_use_library(lib:dict): # IDK
     if not 'rules' in lib:
         return True
     for rule in lib['rules']:
@@ -131,7 +131,7 @@ def should_use_library(lib:dict):
             return True
     return False
 
-def get_classpath(lib:dict, mc_dir:str, callback:dict, user_type:str):
+def get_classpath(lib:dict, mc_dir:str, callback:dict, user_type:str): # IDK
     cp = []
 
     mc_lib.install.install_libraries(lib, mc_dir, callback)
@@ -160,7 +160,7 @@ def get_classpath(lib:dict, mc_dir:str, callback:dict, user_type:str):
 
     return os.pathsep.join(cp)
 
-def install_version(version:str, mc_dir:str, callback:dict, version_type:int, launcher_dir:str):
+def install_version(version:str, mc_dir:str, callback:dict, version_type:int, launcher_dir:str): # INSTALL VERSION VANILLA AND MODIFIED IF MODIFIED
     installed = [version_.get('id') for version_ in get_versions_installed(mc_dir)]
     version_formated : str = version
     if 'fabric' in version.lower():
@@ -206,7 +206,7 @@ def install_version(version:str, mc_dir:str, callback:dict, version_type:int, la
         return [[launch_version, tl_skin_path], 'Install', 'Minecraft version (' + version + ')' + modified_string + ' installed']
     return [[launch_version, tl_skin_path]]
 
-def get_game_args(version_json:dict):
+def get_game_args(version_json:dict): # REMOVE UNNECESSARY GAME ARGUMENTS
     one_args = [arg for arg in version_json['arguments']['game'] if isinstance(arg, str)]
     dict_args = [arg for arg in version_json['arguments']['game'] if isinstance(arg, dict)]
     ignore_args = [
@@ -235,7 +235,7 @@ def get_game_args(version_json:dict):
             new_args.append(arg)
     return new_args
     
-def launch(version:str, username:str, uuid:str, access_token:str, user_type:str, java_args:list, callback:dict):
+def launch(version:str, username:str, uuid:str, access_token:str, user_type:str, java_args:list, callback:dict): # LAUNCH MINECRAFT VERSION
     minecraft_dir : str = mc_lib.utils.get_minecraft_directory()
     default_jvm : list = [
         '-Djava.library.path=',
@@ -289,6 +289,7 @@ def launch(version:str, username:str, uuid:str, access_token:str, user_type:str,
     if not user_type == get_account_types()[0]:
         user_type == get_account_types()[0]
         
+    # CALL INSTALL VERSION AND INSTALL TLSKINCAPE BEFORE AS REQUIRED
 
     process = subprocess.Popen([java_executable] + java_args + additional_args + [default_jvm[0] + natives_dir, default_jvm[1] + launcher_name, default_jvm[2] + launcher_version, '-cp', class_path, main_class, '--username', username, '--version', version, '--gameDir', minecraft_dir, '--assetsDir', os.path.join(minecraft_dir, 'assets'), '--assetIndex', asset_index, '--uuid', uuid, '--accessToken', access_token, '--userType', user_type, '--versionType', version_type] + jvm_args + game_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
@@ -296,7 +297,7 @@ def launch(version:str, username:str, uuid:str, access_token:str, user_type:str,
 
 # TLAUNCHER
 
-def install_tl_skin(version:str, mc_dir:str, version_type:int, launcher_dir:str):
+def install_tl_skin(version:str, mc_dir:str, version_type:int, callback:dict, launcher_dir:str): # INSTALL TLAUNCHER LIBRARIES AND MOD
     file_name : str = os.path.join(launcher_dir, 'json', 'tl.json')
     tl_json : dict = {}
     try:
@@ -311,6 +312,8 @@ def install_tl_skin(version:str, mc_dir:str, version_type:int, launcher_dir:str)
     check_mods : list = tl_json['additionalMods']
     check_versions : list = tl_json['tlauncherSkinCapeVersion']
     libraries : list = tl_json['libraries']
+    previous_index : int = 0
+    callback.get('setMax', mc_lib.helper.empty)(len(libraries + check_mods))
     search : list = [version]
     exclude : list = ['optifine']
     if version_type == CODE_FABRIC:
@@ -320,7 +323,7 @@ def install_tl_skin(version:str, mc_dir:str, version_type:int, launcher_dir:str)
     else:
         exclude.append('fabric')
         exclude.append('forge')
-    for lib in libraries:
+    for index, lib in enumerate(libraries):
         supported : bool = True
         if 'supports' in lib.keys():
             found : bool = False
@@ -333,6 +336,8 @@ def install_tl_skin(version:str, mc_dir:str, version_type:int, launcher_dir:str)
                     if term in version_.lower():
                         should_continue = True
                 if should_continue:
+                    previous_index = index
+                    callback.get('setProgress', mc_lib.helper.empty)(index)
                     continue
                 found = True
             if not found:
@@ -343,6 +348,8 @@ def install_tl_skin(version:str, mc_dir:str, version_type:int, launcher_dir:str)
                 mc_lib.helper.download_file(lib['artifact']['url'], full_path_lib, {}, lib['artifact']['sha1'])
             except:
                 pass
+        previous_index = index
+        callback.get('setProgress', mc_lib.helper.empty)(index)
     found_version : str = ''
     for mod in check_versions:
         should_continue : bool = False
@@ -358,28 +365,30 @@ def install_tl_skin(version:str, mc_dir:str, version_type:int, launcher_dir:str)
         break
     if not found_version:
         return ''
-    for mod in check_mods:
+    for index, mod in enumerate(check_mods):
         if not found_version in mod['supports']:
+            callback.get('setProgress', mc_lib.helper.empty)(previous_index + index)
             continue
         full_path : str = os.path.join(mc_dir, 'libraries', mod['artifact']['path'])
         try:
             mc_lib.helper.download_file(mod['artifact']['url'], full_path, {}, mod['artifact']['sha1'])
         except:
             pass
+        callback.get('setProgress', mc_lib.helper.empty)(len(libraries + check_mods))
         return full_path
     return ''
 
 # MODPACKS
 
-def apply_modpack(mc_dir:str, modpack_dir:str, modpack:str, remove:bool):
-    if remove:
+def apply_modpack(mc_dir:str, modpack_dir:str, modpack:str, remove:bool): # CHANGES MODPACK
+    if remove: # REMOVES MODPACK AND RESTORES TEMP MOD DIR
         if os.path.isdir(os.path.join(mc_dir, 'mods')):
             os.rename(os.path.join(mc_dir, 'mods'), os.path.join(mc_dir, modpack))
             shutil.move(os.path.join(mc_dir, modpack), modpack_dir)
 
         if os.path.isdir(os.path.join(mc_dir, 'temp_mods')):
             os.rename(os.path.join(mc_dir, 'temp_mods'), os.path.join(mc_dir, 'mods'))
-    else:
+    else: # MOVES CURRENT MODS TO TEMP DIR AND APPLIES MODPACK
         if os.path.isdir(os.path.join(mc_dir, 'mods')):
             os.rename(os.path.join(mc_dir, 'mods'), os.path.join(mc_dir, 'temp_mods'))
 
@@ -387,7 +396,7 @@ def apply_modpack(mc_dir:str, modpack_dir:str, modpack:str, remove:bool):
             shutil.move(os.path.join(modpack_dir, modpack), mc_dir)
             os.rename(os.path.join(mc_dir, modpack), os.path.join(mc_dir, 'mods'))
 
-def download_modpack(modlist:dict, download_dir:str, version_formated:str, callback:dict, github_token:str):
+def download_modpack(modlist:dict, download_dir:str, version_formated:str, callback:dict, github_token:str): # DOWNLOADS A VILAUNCHER MODPACK RETURNS SUCCESS
     if not os.path.isdir(download_dir):
         os.makedirs(download_dir)
     modrinth_list : list = modlist['modrinth']
@@ -413,7 +422,7 @@ def download_modpack(modlist:dict, download_dir:str, version_formated:str, callb
 
 # GITHUB
 
-def find_github(repo_string:str, token:str, strings:list):
+def find_github(repo_string:str, token:str, strings:list): # HELPER DOWNLOAD MODPACK
     git = Github(token)
     for n_repo in repo_string.split('>'):
         repo = git.get_repo(n_repo)
@@ -424,12 +433,12 @@ def find_github(repo_string:str, token:str, strings:list):
                     return (asset.url, asset_name, asset.raw_headers)
     return ()
 
-def download_github(url:str, destination:str, headers:dict):
+def download_github(url:str, destination:str, headers:dict): # HELPER DOWNLOAD MODPACK
     return download_file(url, destination, '', headers)
 
 # MODRINTH
 
-def find_modrinth(mod_id_unformated:str, version_formated:str):
+def find_modrinth(mod_id_unformated:str, version_formated:str): # HELPER DOWNLOAD MODPACK
     for mod_id in mod_id_unformated.split('>'):
         mod : dict = {}
         try:
@@ -463,7 +472,7 @@ def find_modrinth(mod_id_unformated:str, version_formated:str):
             return final
     return {}
 
-def download_modrinth_mod(version_json:dict, download_dir:str):
+def download_modrinth_mod(version_json:dict, download_dir:str): # HELPER DOWNLOAD MODPACK
     destination : str = os.path.join(download_dir, version_json['files'][0]['filename'])
     if os.path.isfile(destination):
         return destination
@@ -475,10 +484,10 @@ def download_modrinth_mod(version_json:dict, download_dir:str):
 
 # Utils
 
-def set_ram(minimum_ram:int, maximum_ram:int, scale:str):
+def set_ram(minimum_ram:int, maximum_ram:int, scale:str): # HELPER GET RAM ARGUMENT
     return ['-Xms' + str(minimum_ram) + scale, '-Xmx' + str(maximum_ram) + scale]
 
-def download_file(url:str, path:str, sha1:str, headers:dict):
+def download_file(url:str, path:str, sha1:str, headers:dict): # HELPER REPLACEMENT
     if os.path.isfile(path):
         if not sha1:
             return False
