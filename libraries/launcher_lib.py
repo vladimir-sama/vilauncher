@@ -170,7 +170,7 @@ def install_version(version:str, mc_dir:str, callback:dict, version_type:int, la
         version_type = CODE_FORGE
         version_formated = version.lstrip('Forge ').split('-')[0]
     launch_version : str = version
-    tl_skin_path : str = install_tl_skin(version_formated, mc_dir, version_type, launcher_dir)
+    tl_skin_path : str = install_tl_skin(version_formated, mc_dir, version_type, callback, launcher_dir)
 
     modified_string = ''
     if not version_formated in installed:
