@@ -153,7 +153,7 @@ class Main_Window(QMainWindow, Ui_main): # MAIN WINDOW
             self.filter_box.addItem(modpack.rstrip('.json'))
 
         self.load_conf()
-        self.filter_box.setCurrentIndex(launcher_lib.FILTER_INSTALLED)
+        self.filter_box.setCurrentIndex(launcher_lib.FILTER_FABRIC)
 
     def connect_events(self):
         self.button_play.clicked.connect(self.play_pressed)
@@ -166,33 +166,6 @@ class Main_Window(QMainWindow, Ui_main): # MAIN WINDOW
         self.filter_box.currentIndexChanged.disconnect()
         self.button_options.clicked.disconnect()
         self.account_type.currentIndexChanged.disconnect()
-
-    def debug_handle(self, process:subprocess.Popen, tl_skin_path:str): # AVOID SIGSEGV
-        self.hide()
-        self.progress_bar.setValue(0)
-        running : bool = True
-        while running:
-            time.sleep(sleep_time)
-            running = not isinstance(process.poll(), int)
-        scrollbar = self.console.verticalScrollBar()
-        console = self.console
-        output = process.stdout.readlines()
-        errors = process.stderr.readlines()
-        if output:
-            console.append('\n'.join(output))
-        if errors:
-            console.append('\n'.join(errors))
-
-        os.chdir(self.launcher_dir)
-        self.show()
-        if tl_skin_path:
-            if os.path.isfile(tl_skin_path):
-                os.remove(tl_skin_path)
-        if self.filter_box.currentIndex() == launcher_lib.FILTER_IMPALER:
-            launcher_lib.apply_modpack(launcher_lib.mc_lib.utils.get_minecraft_directory(), os.path.join(self.modpack_dir, 'impaler'), self.version.currentText(), True)
-        
-        scrollbar.setValue(scrollbar.maximum())
-        self.set_read_only(False)
     
     def create_message(self, title:str, information:str): # CREATE MESSAGE BOX
         message_box = QMessageBox()
@@ -256,23 +229,7 @@ class Main_Window(QMainWindow, Ui_main): # MAIN WINDOW
 
     def filter_index(self, index:int): #  ON EVENT CHANGE FILTER
         self.version.clear()
-        if index == launcher_lib.FILTER_INSTALLED:
-            for mc_version in launcher_lib.get_versions_installed(launcher_lib.mc_lib.utils.get_minecraft_directory()):
-                version = mc_version.get('id')
-                should_not_startwith = [
-                    'Fabric ',
-                    'Forge ',
-                    'Optifine ',
-                    'ForgeOptifine '
-                ]
-                if not self.option_mod: # ALWAYS SKIP FORGE
-                    if not any(version.startswith(string) for string in should_not_startwith):
-                        if not 'forge' in version.lower() and not 'optifine' in version.lower():
-                            self.version.addItem(version)
-                else:
-                    if not 'forge' in version.lower() and not 'optifine' in version.lower():
-                        self.version.addItem(version)
-        elif index == launcher_lib.FILTER_VANILLA:
+        if index == launcher_lib.FILTER_VANILLA:
             for mc_version in launcher_lib.get_versions_online(self.option_snap, self.option_old):
                 self.version.addItem(mc_version.get('id'))
         elif index == launcher_lib.FILTER_FABRIC:
@@ -289,6 +246,7 @@ class Main_Window(QMainWindow, Ui_main): # MAIN WINDOW
                         versions : list = json.load(file)['versions']
                         for mc_version in versions:
                             self.version.addItem(mc_version)
+                    break
 
     def change_account(self, _:int): # ON EVENT CHANGE ACCOUNT TYPE
         if self.account_type.currentText() == launcher_lib.get_account_types()[0]:
@@ -337,6 +295,7 @@ class Main_Window(QMainWindow, Ui_main): # MAIN WINDOW
                             os.chdir(self.launcher_dir)
                             return
                         launcher_lib.apply_modpack(launcher_lib.mc_lib.utils.get_minecraft_directory(), os.path.join(self.modpack_dir, modpack_name), version_formated, False)
+                    break
         # MORE RELEVANT VARIABLES
         username : str = self.username.text()
         uuid : str = self.uuid.text()
@@ -353,6 +312,8 @@ class Main_Window(QMainWindow, Ui_main): # MAIN WINDOW
             self.create_message(return_message[0], return_message[1])
             self.set_read_only(False)
             self.progress_bar.setValue(0)
+            if modpack_name:
+                launcher_lib.apply_modpack(launcher_lib.mc_lib.utils.get_minecraft_directory(), os.path.join(self.modpack_dir, modpack_name), version_formated, True)
             os.chdir(self.launcher_dir)
             return
         else:
@@ -374,6 +335,8 @@ class Main_Window(QMainWindow, Ui_main): # MAIN WINDOW
                     self.create_message('Access Token', 'This access token (' + token + ') is invalid')
                     self.set_read_only(False)
                     self.progress_bar.setValue(0)
+                    if modpack_name:
+                        launcher_lib.apply_modpack(launcher_lib.mc_lib.utils.get_minecraft_directory(), os.path.join(self.modpack_dir, modpack_name), version_formated, True)
                     os.chdir(self.launcher_dir)
                     return
         elif not token and uuid: # TODO

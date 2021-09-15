@@ -14,10 +14,8 @@ launcher_version = '0.04'
 CODE_VANILLA = 0
 CODE_FORGE   = 1
 CODE_FABRIC  = 2
-FILTER_INSTALLED = 0
-FILTER_VANILLA   = 1
-FILTER_FABRIC    = 2
-FILTER_IMPALER   = 3
+FILTER_VANILLA   = 0
+FILTER_FABRIC    = 1
 
 # GET FUNCTIONS
 
@@ -44,9 +42,8 @@ def get_versions_installed(mc_dir:str):
 
 def get_filters():
     return [
-        'Installed',
         'Vanilla',
-        'Fabric',
+        'Fabric'
     ]
 
 def get_account_types():
@@ -315,15 +312,16 @@ def install_tl_skin(version:str, mc_dir:str, version_type:int, launcher_dir:str)
     check_versions : list = tl_json['tlauncherSkinCapeVersion']
     libraries : list = tl_json['libraries']
     search : list = [version]
-    exclude : str = 'optifine'
+    exclude : list = ['optifine']
     if version_type == CODE_FABRIC:
         search.append('fabric')
     elif version_type == CODE_FORGE:
         search.append('forge')
     else:
-        return ''
-    supported : bool = True
+        exclude.append('fabric')
+        exclude.append('forge')
     for lib in libraries:
+        supported : bool = True
         if 'supports' in lib.keys():
             found : bool = False
             for version_ in lib['supports']:
@@ -331,7 +329,10 @@ def install_tl_skin(version:str, mc_dir:str, version_type:int, launcher_dir:str)
                 for term in search:
                     if not term in version_.lower():
                         should_continue = True
-                if exclude in version_.lower() or should_continue:
+                for term in exclude:
+                    if term in version_.lower():
+                        should_continue = True
+                if should_continue:
                     continue
                 found = True
             if not found:
@@ -344,25 +345,22 @@ def install_tl_skin(version:str, mc_dir:str, version_type:int, launcher_dir:str)
                 pass
     found_version : str = ''
     for mod in check_versions:
+        should_continue : bool = False
         for term in search:
             if not term in mod.lower():
-                continue
-        if exclude in mod.lower():
+                should_continue = True
+        for term in exclude:
+            if term in mod.lower():
+                should_continue = True
+        if should_continue:
             continue
         found_version = mod
         break
     if not found_version:
         return ''
-    search.append('tlskincape')
     for mod in check_mods:
-        should_continue : bool = False
-        for term in search:
-            if not term in mod['name']:
-                should_continue = True
-        if exclude in mod['name'] or should_continue:
-            continue
         if not found_version in mod['supports']:
-            return ''
+            continue
         full_path : str = os.path.join(mc_dir, 'libraries', mod['artifact']['path'])
         try:
             mc_lib.helper.download_file(mod['artifact']['url'], full_path, {}, mod['artifact']['sha1'])
@@ -399,7 +397,7 @@ def download_modpack(modlist:dict, download_dir:str, version_formated:str, callb
     callback.get('setMax', mc_lib.helper.empty)(len(modrinth_list + github_list))
     previous_index : int = 0
     for index, mod_id in enumerate(modrinth_list):
-        final : dict = find_modrinth(mod_id)
+        final : dict = find_modrinth(mod_id, version_formated)
         if not download_modrinth_mod(final, download_dir):
             return False
         callback.get('setProgress', mc_lib.helper.empty)(index)
@@ -431,7 +429,7 @@ def download_github(url:str, destination:str, headers:dict):
 
 # MODRINTH
 
-def find_modrinth(mod_id_unformated:str):
+def find_modrinth(mod_id_unformated:str, version_formated:str):
     for mod_id in mod_id_unformated.split('>'):
         mod : dict = {}
         try:
