@@ -280,7 +280,6 @@ def launch(mc_dir:str, version:str, username:str, uuid:str, access_token:str, us
     command : list = [java_executable] + java_args + jvm_args + additional_args
     command.extend([default_jvm[0] + natives_dir, default_jvm[1] + launcher_data[0], default_jvm[2] + launcher_data[1], '-cp', class_path, main_class])
     command.extend(game_args)
-    print(command)
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
     return process
@@ -501,5 +500,5 @@ def download_file(url:str, path:str, sha1:str, headers:dict): # HELPER REPLACEME
 
 
 if __name__ == '__main__':
-    print(get_java_exec())
+    print(library_name, library_version, '\n')
     
