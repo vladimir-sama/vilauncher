@@ -8,22 +8,17 @@ import subprocess
 import minecraft_launcher_lib as mc_lib
 from github import Github
 
-launcher_name = 'VILauncher'
-launcher_version = '0.04'
+library_name : str = 'VILauncher Library'
+library_version : str = '0.05'
 
-CODE_VANILLA = 0
-CODE_FORGE   = 1
-CODE_FABRIC  = 2
-FILTER_VANILLA = 0
-FILTER_FABRIC  = 1
+CODE_VANILLA : int = 0
+CODE_FORGE : int   = 1
+CODE_FABRIC : int  = 2
 
 # GET FUNCTIONS
 
 def get_java_exec(): # FIND JAVA EXECUTABLE
     return shutil.which('java')
-
-def get_versions_legacy(): # OLD FUNCTION GET INSTALLED VERSIONS
-    return os.listdir(os.path.join(mc_lib.utils.get_minecraft_directory(), 'versions'))
 
 def get_versions_online(show_snapshots:bool, show_old:bool): # LIST MINECRAFT VERSIONS WITH FILTER
     ls : list = []
@@ -38,13 +33,11 @@ def get_versions_online(show_snapshots:bool, show_old:bool): # LIST MINECRAFT VE
     return ls
 
 def get_versions_installed(mc_dir:str): # SHORTCUT
-    return mc_lib.utils.get_installed_versions(mc_dir)
-
-def get_filters(): # GET VILAUNCHER FILTERS
-    return [
-        'Vanilla',
-        'Fabric'
-    ]
+    try:
+        return mc_lib.utils.get_installed_versions(mc_dir)
+    except:
+        pass
+    return []
 
 def get_account_types(): # GET AVAILABLE ACCOUNT TYPES
     return ['mojang', 'tlauncher']
@@ -235,8 +228,9 @@ def get_game_args(version_json:dict): # REMOVE UNNECESSARY GAME ARGUMENTS
             new_args.append(arg)
     return new_args
     
-def launch(version:str, username:str, uuid:str, access_token:str, user_type:str, java_args:list, callback:dict): # LAUNCH MINECRAFT VERSION
-    minecraft_dir : str = mc_lib.utils.get_minecraft_directory()
+def launch(mc_dir:str, version:str, username:str, uuid:str, access_token:str, user_type:str, java_args:list, callback:dict, launcher_data:tuple): # LAUNCH MINECRAFT VERSION
+    # CALL INSTALL VERSION AND INSTALL TLSKINCAPE BEFORE AS REQUIRED BEFORE THIS FUNCTION
+    minecraft_dir : str = mc_dir
     default_jvm : list = [
         '-Djava.library.path=',
         '-Dminecraft.launcher.brand=',
@@ -261,8 +255,7 @@ def launch(version:str, username:str, uuid:str, access_token:str, user_type:str,
         '--add-exports=jdk.naming.dns/com.sun.jndi.dns=java.naming',
         '--add-opens=java.base/java.util.jar=ALL-UNNAMED'
     ]
-    game_args : list = []
-    jvm_args : list = []
+    
     if 'assetIndex' in client_json.keys():
         asset_index = client_json['assetIndex']['id']
     else:
@@ -273,25 +266,22 @@ def launch(version:str, username:str, uuid:str, access_token:str, user_type:str,
             inherit_json.update(client_json)
             client_json = inherit_json
             client_json['libraries'] = original_inherit_json['libraries'] + original_client_json['libraries']
-    if 'arguments' in client_json.keys():
-        if 'jvm' in client_json['arguments'].keys():
-            jvm_args = [arg for arg in client_json['arguments']['jvm'] if isinstance(arg, str)]
-            jvm_args = [arg for arg in jvm_args if not any(arg.startswith(default) for default in default_jvm)]
-            if jvm_args.count('-cp'):
-                class_path_index : int = jvm_args.index('-cp')
-                del jvm_args[class_path_index + 1]
-                del jvm_args[class_path_index]
-        if 'game' in client_json['arguments'].keys():
-            game_args = get_game_args(client_json)
+
+    jvm_args : list = []
+    if 'fabric' in client_json['id']:
+        jvm_args.append('-DFabricMcEmu=net.minecraft.client.main.Main')
+
     class_path : str = get_classpath(client_json, minecraft_dir, callback, user_type)
     main_class : str = client_json['mainClass']
     version_type : str = client_json['type']
-    if not user_type == get_account_types()[0]:
-        user_type == get_account_types()[0]
-        
-    # CALL INSTALL VERSION AND INSTALL TLSKINCAPE BEFORE AS REQUIRED
 
-    process = subprocess.Popen([java_executable] + java_args + additional_args + [default_jvm[0] + natives_dir, default_jvm[1] + launcher_name, default_jvm[2] + launcher_version, '-cp', class_path, main_class, '--username', username, '--version', version, '--gameDir', minecraft_dir, '--assetsDir', os.path.join(minecraft_dir, 'assets'), '--assetIndex', asset_index, '--uuid', uuid, '--accessToken', access_token, '--userType', user_type, '--versionType', version_type] + jvm_args + game_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    game_args : list = ['--username', username, '--version', version, '--gameDir', minecraft_dir, '--assetsDir', os.path.join(minecraft_dir, 'assets'), '--assetIndex', asset_index, '--uuid', uuid, '--accessToken', access_token, '--userType', user_type, '--versionType', version_type]
+        
+    command : list = [java_executable] + java_args + jvm_args + additional_args
+    command.extend([default_jvm[0] + natives_dir, default_jvm[1] + launcher_data[0], default_jvm[2] + launcher_data[1], '-cp', class_path, main_class])
+    command.extend(game_args)
+    print(command)
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
     return process
 
@@ -407,6 +397,8 @@ def download_modpack(modlist:dict, download_dir:str, version_formated:str, callb
     previous_index : int = 0
     for index, mod_id in enumerate(modrinth_list):
         final : dict = find_modrinth(mod_id, version_formated)
+        if not final:
+            return False
         if not download_modrinth_mod(final, download_dir):
             return False
         callback.get('setProgress', mc_lib.helper.empty)(index)
@@ -509,5 +501,5 @@ def download_file(url:str, path:str, sha1:str, headers:dict): # HELPER REPLACEME
 
 
 if __name__ == '__main__':
-    pass
+    print(get_java_exec())
     

@@ -14,6 +14,14 @@ from PySide2.QtWidgets import QApplication, QMainWindow, QMessageBox, QDialog, Q
 from PySide2.QtGui import QIcon, QCloseEvent
 from PySide2.QtCore import QThread, QMutex, Signal
 
+launcher_name : str = 'VILauncher'
+launcher_version : str = '0.02'
+
+# CONSTANTS
+
+FILTER_VANILLA : int = 0
+FILTER_FABRIC : int  = 1
+
 # VARIABLES
 
 sleep_time : float = 0.05
@@ -95,6 +103,10 @@ class Main_Window(QMainWindow, Ui_main): # MAIN WINDOW
             os.makedirs('json/modpacks')
         if not os.path.isdir('modpacks'):
             os.mkdir('modpacks')
+        try:
+            os.makedirs(launcher_lib.mc_lib.utils.get_minecraft_directory())
+        except:
+            pass
 
         self.save_json = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'json', 'save.json')
         self.cache_json = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'json', 'cache.json')
@@ -147,13 +159,13 @@ class Main_Window(QMainWindow, Ui_main): # MAIN WINDOW
         
         for ac_type in launcher_lib.get_account_types():
             self.account_type.addItem(ac_type)
-        for filter_type in launcher_lib.get_filters():
+        for filter_type in get_filters():
             self.filter_box.addItem(filter_type)
         for modpack in os.listdir(self.modpack_json_dir):
             self.filter_box.addItem(modpack.rstrip('.json'))
 
         self.load_conf()
-        self.filter_box.setCurrentIndex(launcher_lib.FILTER_FABRIC)
+        self.filter_box.setCurrentIndex(1)
 
     def connect_events(self):
         self.button_play.clicked.connect(self.play_pressed)
@@ -229,10 +241,10 @@ class Main_Window(QMainWindow, Ui_main): # MAIN WINDOW
 
     def filter_index(self, index:int): #  ON EVENT CHANGE FILTER
         self.version.clear()
-        if index == launcher_lib.FILTER_VANILLA:
+        if self.filter_box.currentText() == get_filters()[0]: # VANILLA
             for mc_version in launcher_lib.get_versions_online(self.option_snap, self.option_old):
                 self.version.addItem(mc_version.get('id'))
-        elif index == launcher_lib.FILTER_FABRIC:
+        elif self.filter_box.currentText() == get_filters()[1]: # FABRIC
             data : dict = {}
             with open(self.cache_json) as file:
                 data = json.load(file)
@@ -240,7 +252,7 @@ class Main_Window(QMainWindow, Ui_main): # MAIN WINDOW
                 if mc_version[1]:
                     self.version.addItem(mc_version[0])
         else:
-            for modpack in os.listdir(self.modpack_json_dir):
+            for modpack in os.listdir(self.modpack_json_dir): # MODPACKS
                 if self.filter_box.currentText() == modpack.rstrip('.json'):
                     with open(os.path.join(self.modpack_json_dir, modpack)) as file:
                         versions : list = json.load(file)['versions']
@@ -279,7 +291,7 @@ class Main_Window(QMainWindow, Ui_main): # MAIN WINDOW
         code : int = launcher_lib.CODE_VANILLA # VERSION TYPE
         index : int = self.filter_box.currentIndex()
         modpack_name : str = ''
-        if index == launcher_lib.FILTER_FABRIC:
+        if self.filter_box.currentText() == get_filters()[1]: # FABRIC
             code = launcher_lib.CODE_FABRIC
         else:
             for modpack in os.listdir(self.modpack_json_dir):
@@ -354,7 +366,7 @@ class Main_Window(QMainWindow, Ui_main): # MAIN WINDOW
             token = 'null'
         # START MINECRAFT
         java_args = self.jvm_args.split() + launcher_lib.set_ram(self.current_ram_min, self.current_ram_max, 'M') + self.jvm_args.split()
-        process = launcher_lib.launch(selected_version, username, uuid, token, ac_type, java_args, self.callback)
+        process = launcher_lib.launch(launcher_lib.mc_lib.utils.get_minecraft_directory(), selected_version, username, uuid, token, ac_type, java_args, self.callback, (launcher_name, launcher_version))
         self.progress_bar.setValue(0)
         self.console_thread = Console_Thread(self, process, tl_skin_path, modpack_name)
         self.console_thread.append.connect(self.append_console)
@@ -416,6 +428,13 @@ class Main_Window(QMainWindow, Ui_main): # MAIN WINDOW
         self.save_conf()
         event.accept()
 
+# FUNCTIONS
+def get_filters(): # GET VILAUNCHER FILTERS
+    return [
+        'Vanilla',
+        'Fabric'
+    ]
+
 if __name__ == '__main__': # RUN
     debug = False
     for arg in sys.argv:
@@ -423,7 +442,9 @@ if __name__ == '__main__': # RUN
             import faulthandler
             faulthandler.enable()
             debug = True
-    print(launcher_lib.launcher_name, launcher_lib.launcher_version, '\n')
+    print(launcher_name, launcher_version)
+    print(launcher_lib.library_name, launcher_lib.library_version)
+    print('Minecraft Launcher Lib', launcher_lib.mc_lib.helper.get_library_version(), '\n')
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
     app = QApplication([])
