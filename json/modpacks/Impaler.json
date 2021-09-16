@@ -1,9 +1,9 @@
 {
     "name": "Impaler",
     "versions": [
-        "1.16.5",
+        "1.17.1",
         "1.17",
-        "1.17.1"
+        "1.16.5"
     ],
     "modrinth": [
         "AZomiSrC",
@@ -18,8 +18,7 @@
         "2Uev7LdA",
         "PtjYWJkn",
         "aXf2OSFU",
-        "LQ3K71Q1",
-        "GNxdLCoP"
+        "LQ3K71Q1"
     ],
     "github": [],
     "modified": 2
